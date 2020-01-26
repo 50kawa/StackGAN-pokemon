@@ -58,10 +58,19 @@ __C.GAN.Z_DIM = 100
 __C.GAN.NETWORK_TYPE = 'default'
 __C.GAN.R_NUM = 2
 __C.GAN.B_CONDITION = False
+__C.GAN.POKEMON = False
 
 __C.TEXT = edict()
 __C.TEXT.DIMENSION = 1024
 
+__C.CHAR = edict()
+__C.CHAR.VOCABSIZE = 105
+
+__C.CHARVEC = edict()
+__C.CHARVEC.DIMENSION = 64
+
+__C.CHARLSTM = edict()
+__C.CHARLSTM.DIMENSION = 256
 
 def _merge_a_into_b(a, b):
     """Merge config dictionary a into config dictionary b, clobbering the
@@ -70,9 +79,9 @@ def _merge_a_into_b(a, b):
     if type(a) is not edict:
         return
 
-    for k, v in a.iteritems():
+    for k, v in a.items():
         # a must specify keys that are in b
-        if not b.has_key(k):
+        if k not in b:
             raise KeyError('{} is not a valid config key'.format(k))
 
         # the types must match, too

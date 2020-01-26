@@ -83,6 +83,22 @@ def Block3x3_relu(in_planes, out_planes):
     return block
 
 
+class BiLSTM(nn.Module):
+    def __init__(self):
+        super(BiLSTM, self).__init__()
+        self.vocab_size = cfg.CHAR.VOCABSIZE
+        self.embedding_dim = cfg.CHARVEC.DIMENSION
+        self.hidden_dim = cfg.CHARLSTM.DIMENSION
+        self.word_embeds = nn.Embedding(self.vocab_size, self.embedding_dim)
+        self.lstm = nn.LSTM(self.embedding_dim, self.hidden_dim // 2,
+                            num_layers=1, bidirectional=True)
+
+    def forward(self, sentence, embedding):
+        embeds = self.word_embeds(sentence)
+        lstm_out, _ = self.lstm(embeds.view(len(sentence), 1, -1))
+        return torch.cat((lstm_out, embedding), dim=1)
+
+
 class ResBlock(nn.Module):
     def __init__(self, channel_num):
         super(ResBlock, self).__init__()

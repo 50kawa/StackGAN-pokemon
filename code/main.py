@@ -126,6 +126,12 @@ if __name__ == "__main__":
         dataset = TextDataset(cfg.DATA_DIR, split_dir,
                               base_size=cfg.TREE.BASE_SIZE,
                               transform=image_transform)
+    elif cfg.GAN.POKEMON:  # pokemon to image task
+        from datasets import PokemonDataset
+        dataset = PokemonDataset(cfg.DATA_DIR, split_dir,
+                              base_size=cfg.TREE.BASE_SIZE,
+                              transform=image_transform)
+
     assert dataset
     num_gpu = len(cfg.GPU_ID.split(','))
     dataloader = torch.utils.data.DataLoader(

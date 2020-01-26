@@ -16,10 +16,10 @@ from copy import deepcopy
 from miscc.config import cfg
 from miscc.utils import mkdir_p
 
-from tensorboard import summary
-from tensorboard import FileWriter
+from torch.utils.tensorboard import summary
+from torch.utils.tensorboard import FileWriter
 
-from model import G_NET, D_NET64, D_NET128, D_NET256, D_NET512, D_NET1024, INCEPTION_V3
+from model import G_NET, D_NET64, D_NET128, D_NET256, D_NET512, D_NET1024, INCEPTION_V3, BiLSTM
 
 
 
@@ -545,13 +545,15 @@ class condGANTrainer(object):
         self.num_batches = len(self.data_loader)
 
     def prepare_data(self, data):
-        imgs, w_imgs, t_embedding, _ = data
+        imgs, w_imgs, name, pokemon_emb, _ = data
 
         real_vimgs, wrong_vimgs = [], []
         if cfg.CUDA:
-            vembedding = Variable(t_embedding).cuda()
+            one_hot_vector = torch.tensor(name, dtype=torch.long)
+            pokemon_embedding = Variable(pokemon_emb).cuda()
         else:
-            vembedding = Variable(t_embedding)
+            one_hot_vector = torch.tensor(name, dtype=torch.long)
+            pokemon_embedding = Variable(pokemon_emb)
         for i in range(self.num_Ds):
             if cfg.CUDA:
                 real_vimgs.append(Variable(imgs[i]).cuda())
@@ -559,7 +561,7 @@ class condGANTrainer(object):
             else:
                 real_vimgs.append(Variable(imgs[i]))
                 wrong_vimgs.append(Variable(w_imgs[i]))
-        return imgs, real_vimgs, wrong_vimgs, vembedding
+        return imgs, real_vimgs, wrong_vimgs, one_hot_vector, pokemon_embedding
 
     def train_Dnet(self, idx, count):
         flag = count % 100
@@ -665,6 +667,10 @@ class condGANTrainer(object):
     def train(self):
         self.netG, self.netsD, self.num_Ds,\
             self.inception_model, start_count = load_network(self.gpus)
+        self.pre_embed = BiLSTM()
+        self.pre_embed.apply(weights_init)
+        self.pre_embed = torch.nn.DataParallel(self.pre_embed, device_ids=gpus)
+
         avg_param_G = copy_G_params(self.netG)
 
         self.optimizerG, self.optimizersD = \
@@ -704,7 +710,12 @@ class condGANTrainer(object):
                 # (0) Prepare training data
                 ######################################################
                 self.imgs_tcpu, self.real_imgs, self.wrong_imgs, \
-                    self.txt_embedding = self.prepare_data(data)
+                    self.name_1hotvec, self.pokemon_embedding = self.prepare_data(data)
+
+                #######################################################
+                # (1.5) Generate pokemon embedding
+                ######################################################
+                self.txt_embedding = self.pre_embed(self.name_1hotvec, self.pokemon_embedding)
 
                 #######################################################
                 # (1) Generate fake images
