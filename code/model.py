@@ -94,9 +94,10 @@ class BiLSTM(nn.Module):
                             num_layers=1, bidirectional=True)
 
     def forward(self, sentence, embedding):
-        embeds = self.word_embeds(sentence)
-        lstm_out, _ = self.lstm(embeds.view(len(sentence), 1, -1))
-        return torch.cat((lstm_out, embedding), dim=1)
+        embeds = self.word_embeds(Variable(sentence))
+        lstm_out, _ = self.lstm(embeds)
+        print(embedding.shape)
+        return torch.cat((lstm_out[len(sentence)-1], embedding), dim=1)
 
 
 class ResBlock(nn.Module):
@@ -153,7 +154,7 @@ class INIT_STAGE_G(nn.Module):
     def __init__(self, ngf):
         super(INIT_STAGE_G, self).__init__()
         self.gf_dim = ngf
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             self.in_dim = cfg.GAN.Z_DIM + cfg.GAN.EMBEDDING_DIM
         else:
             self.in_dim = cfg.GAN.Z_DIM
@@ -174,7 +175,7 @@ class INIT_STAGE_G(nn.Module):
         self.upsample4 = upBlock(ngf // 8, ngf // 16)
 
     def forward(self, z_code, c_code=None):
-        if cfg.GAN.B_CONDITION and c_code is not None:
+        if (cfg.GAN.B_CONDITION or cfg.GAN.POKEMON) and c_code is not None:
             in_code = torch.cat((c_code, z_code), 1)
         else:
             in_code = z_code
@@ -197,7 +198,7 @@ class NEXT_STAGE_G(nn.Module):
     def __init__(self, ngf, num_residual=cfg.GAN.R_NUM):
         super(NEXT_STAGE_G, self).__init__()
         self.gf_dim = ngf
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             self.ef_dim = cfg.GAN.EMBEDDING_DIM
         else:
             self.ef_dim = cfg.GAN.Z_DIM
@@ -254,7 +255,7 @@ class G_NET(nn.Module):
         self.define_module()
 
     def define_module(self):
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             self.ca_net = CA_NET()
 
         if cfg.TREE.BRANCH_NUM > 0:
@@ -274,7 +275,7 @@ class G_NET(nn.Module):
             self.img_net4 = GET_IMAGE_G(self.gf_dim // 16)
 
     def forward(self, z_code, text_embedding=None):
-        if cfg.GAN.B_CONDITION and text_embedding is not None:
+        if (cfg.GAN.B_CONDITION or cfg.GAN.POKEMON) and text_embedding is not None:
             c_code, mu, logvar = self.ca_net(text_embedding)
         else:
             c_code, mu, logvar = z_code, None, None
@@ -358,7 +359,7 @@ class D_NET64(nn.Module):
             nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
             nn.Sigmoid())
 
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             self.jointConv = Block3x3_leakRelu(ndf * 8 + efg, ndf * 8)
             self.uncond_logits = nn.Sequential(
                 nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
@@ -367,7 +368,7 @@ class D_NET64(nn.Module):
     def forward(self, x_var, c_code=None):
         x_code = self.img_code_s16(x_var)
 
-        if cfg.GAN.B_CONDITION and c_code is not None:
+        if (cfg.GAN.B_CONDITION or cfg.GAN.POKEMON) and c_code is not None:
             c_code = c_code.view(-1, self.ef_dim, 1, 1)
             c_code = c_code.repeat(1, 1, 4, 4)
             # state size (ngf+egf) x 4 x 4
@@ -378,7 +379,7 @@ class D_NET64(nn.Module):
             h_c_code = x_code
 
         output = self.logits(h_c_code)
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             out_uncond = self.uncond_logits(x_code)
             return [output.view(-1), out_uncond.view(-1)]
         else:
@@ -404,7 +405,7 @@ class D_NET128(nn.Module):
             nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
             nn.Sigmoid())
 
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             self.jointConv = Block3x3_leakRelu(ndf * 8 + efg, ndf * 8)
             self.uncond_logits = nn.Sequential(
             nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
@@ -415,7 +416,7 @@ class D_NET128(nn.Module):
         x_code = self.img_code_s32(x_code)
         x_code = self.img_code_s32_1(x_code)
 
-        if cfg.GAN.B_CONDITION and c_code is not None:
+        if (cfg.GAN.B_CONDITION or cfg.GAN.POKEMON) and c_code is not None:
             c_code = c_code.view(-1, self.ef_dim, 1, 1)
             c_code = c_code.repeat(1, 1, 4, 4)
             # state size (ngf+egf) x 4 x 4
@@ -426,7 +427,7 @@ class D_NET128(nn.Module):
             h_c_code = x_code
 
         output = self.logits(h_c_code)
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             out_uncond = self.uncond_logits(x_code)
             return [output.view(-1), out_uncond.view(-1)]
         else:
@@ -454,7 +455,7 @@ class D_NET256(nn.Module):
             nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
             nn.Sigmoid())
 
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             self.jointConv = Block3x3_leakRelu(ndf * 8 + efg, ndf * 8)
             self.uncond_logits = nn.Sequential(
                 nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
@@ -467,7 +468,7 @@ class D_NET256(nn.Module):
         x_code = self.img_code_s64_1(x_code)
         x_code = self.img_code_s64_2(x_code)
 
-        if cfg.GAN.B_CONDITION and c_code is not None:
+        if (cfg.GAN.B_CONDITION or cfg.GAN.POKEMON) and c_code is not None:
             c_code = c_code.view(-1, self.ef_dim, 1, 1)
             c_code = c_code.repeat(1, 1, 4, 4)
             # state size (ngf+egf) x 4 x 4
@@ -478,7 +479,7 @@ class D_NET256(nn.Module):
             h_c_code = x_code
 
         output = self.logits(h_c_code)
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             out_uncond = self.uncond_logits(x_code)
             return [output.view(-1), out_uncond.view(-1)]
         else:
@@ -508,7 +509,7 @@ class D_NET512(nn.Module):
             nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
             nn.Sigmoid())
 
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             self.jointConv = Block3x3_leakRelu(ndf * 8 + efg, ndf * 8)
             self.uncond_logits = nn.Sequential(
                 nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
@@ -523,7 +524,7 @@ class D_NET512(nn.Module):
         x_code = self.img_code_s128_2(x_code)
         x_code = self.img_code_s128_3(x_code)
 
-        if cfg.GAN.B_CONDITION and c_code is not None:
+        if (cfg.GAN.B_CONDITION or cfg.GAN.POKEMON) and c_code is not None:
             c_code = c_code.view(-1, self.ef_dim, 1, 1)
             c_code = c_code.repeat(1, 1, 4, 4)
             # state size (ngf+egf) x 4 x 4
@@ -534,7 +535,7 @@ class D_NET512(nn.Module):
             h_c_code = x_code
 
         output = self.logits(h_c_code)
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             out_uncond = self.uncond_logits(x_code)
             return [output.view(-1), out_uncond.view(-1)]
         else:
@@ -566,7 +567,7 @@ class D_NET1024(nn.Module):
             nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
             nn.Sigmoid())
 
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             self.jointConv = Block3x3_leakRelu(ndf * 8 + efg, ndf * 8)
             self.uncond_logits = nn.Sequential(
                 nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
@@ -583,7 +584,7 @@ class D_NET1024(nn.Module):
         x_code = self.img_code_s256_3(x_code)
         x_code = self.img_code_s256_4(x_code)
 
-        if cfg.GAN.B_CONDITION and c_code is not None:
+        if (cfg.GAN.B_CONDITION or cfg.GAN.POKEMON) and c_code is not None:
             c_code = c_code.view(-1, self.ef_dim, 1, 1)
             c_code = c_code.repeat(1, 1, 4, 4)
             # state size (ngf+egf) x 4 x 4
@@ -594,7 +595,7 @@ class D_NET1024(nn.Module):
             h_c_code = x_code
 
         output = self.logits(h_c_code)
-        if cfg.GAN.B_CONDITION:
+        if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             out_uncond = self.uncond_logits(x_code)
             return [output.view(-1), out_uncond.view(-1)]
         else:

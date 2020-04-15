@@ -139,10 +139,13 @@ if __name__ == "__main__":
         drop_last=True, shuffle=bshuffle, num_workers=int(cfg.WORKERS))
 
     # Define models and go to train/evaluate
-    if not cfg.GAN.B_CONDITION:
+    if not cfg.GAN.B_CONDITION and not cfg.GAN.POKEMON:
         from trainer import GANTrainer as trainer
     else:
-        from trainer import condGANTrainer as trainer
+        if not cfg.GAN.POKEMON:
+            from trainer import condGANTrainer as trainer
+        else:
+            from trainer import pokemonTrainer as trainer
     algo = trainer(output_dir, dataloader, imsize)
 
     start_t = time.time()

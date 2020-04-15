@@ -10,6 +10,7 @@ from PIL import Image
 import PIL
 import os
 import os.path
+import codecs
 import pickle
 import random
 import numpy as np
@@ -39,10 +40,7 @@ def is_image_file(filename):
 
 def get_imgs(img_path, imsize, bbox=None,
              transform=None, normalize=None):
-    png_image = Image.open(img_path)
-    png_image.load()
-    img = Image.new("RGB", png_image.size, (255, 255, 255))
-    img.paste(png_image, mask=png_image.split()[3])
+    img = Image.open(img_path).convert('RGB')
     width, height = img.size
     if bbox is not None:
         r = int(np.maximum(bbox[2], bbox[3]) * 0.75)
@@ -145,7 +143,7 @@ class LSUNClass(data.Dataset):
             print('length: ', self.length)
         cache_file = db_path + '/cache'
         if os.path.isfile(cache_file):
-            self.keys = pickle.load(open(cache_file, "rb"))
+            self.keys = pickle.load(open(cache_file, "rb"), encoding='latin1')
             print('Load:', cache_file, 'keys: ', len(self.keys))
         else:
             with self.env.begin(write=False) as txn:
@@ -230,7 +228,7 @@ class TextDataset(data.Dataset):
         #
         filename_bbox = {img_file[:-4]: [] for img_file in filenames}
         numImgs = len(filenames)
-        for i in xrange(0, numImgs):
+        for i in range(0, numImgs):
             # bbox = [x-left, y-top, width, height]
             bbox = df_bounding_boxes.iloc[i][1:].tolist()
 
@@ -242,8 +240,8 @@ class TextDataset(data.Dataset):
     def load_all_captions(self):
         def load_captions(caption_name):  # self,
             cap_path = caption_name
-            with open(cap_path, "r") as f:
-                captions = f.read().decode('utf8').split('\n')
+            with codecs.open(cap_path, "r", "utf-8") as f:
+                captions = f.read().split('\n')
             captions = [cap.replace("\ufffd\ufffd", " ")
                         for cap in captions if len(cap) > 0]
             return captions
@@ -264,7 +262,7 @@ class TextDataset(data.Dataset):
             embedding_filename = '/skip-thought-embeddings.pickle'
 
         with open(data_dir + embedding_filename, 'rb') as f:
-            embeddings = pickle.load(f)
+            embeddings = pickle.load(f, encoding='latin1')
             embeddings = np.array(embeddings)
             # embedding_shape = [embeddings.shape[-1]]
             print('embeddings: ', embeddings.shape)
@@ -273,7 +271,7 @@ class TextDataset(data.Dataset):
     def load_class_id(self, data_dir, total_num):
         if os.path.isfile(data_dir + '/class_info.pickle'):
             with open(data_dir + '/class_info.pickle', 'rb') as f:
-                class_id = pickle.load(f)
+                class_id = pickle.load(f, encoding='latin1')
         else:
             class_id = np.arange(total_num)
         return class_id
@@ -281,7 +279,7 @@ class TextDataset(data.Dataset):
     def load_filenames(self, data_dir):
         filepath = os.path.join(data_dir, 'filenames.pickle')
         with open(filepath, 'rb') as f:
-            filenames = pickle.load(f)
+            filenames = pickle.load(f, encoding='latin1')
         print('Load filenames from: %s (%d)' % (filepath, len(filenames)))
         return filenames
 
@@ -369,7 +367,7 @@ class PokemonDataset(data.Dataset):
             self.bbox = None
         split_dir = os.path.join(data_dir, split)
         self.pokemon_dict = self.pokemon_dataset[0]
-        self.filenames = self.pokemon_dict.keys()
+        self.filenames = list(self.pokemon_dict.keys())
         self.class_id = self.load_class_id(split_dir, len(self.filenames))
 
         if cfg.TRAIN.FLAG:
@@ -392,7 +390,7 @@ class PokemonDataset(data.Dataset):
         #
         filename_bbox = {img_file[:-4]: [] for img_file in filenames}
         numImgs = len(filenames)
-        for i in xrange(0, numImgs):
+        for i in range(0, numImgs):
             # bbox = [x-left, y-top, width, height]
             bbox = df_bounding_boxes.iloc[i][1:].tolist()
 
@@ -404,8 +402,8 @@ class PokemonDataset(data.Dataset):
     def load_all_captions(self):
         def load_captions(caption_name):  # self,
             cap_path = caption_name
-            with open(cap_path, "r") as f:
-                captions = f.read().decode('utf8').split('\n')
+            with codecs.open(cap_path, "r", "utf-8") as f:
+                captions = f.read().split('\n')
             captions = [cap.replace("\ufffd\ufffd", " ")
                         for cap in captions if len(cap) > 0]
             return captions
@@ -434,7 +432,7 @@ class PokemonDataset(data.Dataset):
             bbox = None
             data_dir = self.data_dir
         # captions = self.captions[key]
-        img_name = '%s/images/%s.png' % (data_dir, key)
+        img_name = '%s/jpg_images/%s.jpg' % (data_dir, key)
         imgs = get_imgs(img_name, self.imsize,
                         bbox, self.transform, normalize=self.norm)
 
@@ -446,7 +444,7 @@ class PokemonDataset(data.Dataset):
             wrong_bbox = self.bbox[wrong_key]
         else:
             wrong_bbox = None
-        wrong_img_name = '%s/images/%s.png' % \
+        wrong_img_name = '%s/jpg_images/%s.jpg' % \
             (data_dir, wrong_key)
         wrong_imgs = get_imgs(wrong_img_name, self.imsize,
                               wrong_bbox, self.transform, normalize=self.norm)
@@ -463,7 +461,7 @@ class PokemonDataset(data.Dataset):
             data_dir = self.data_dir
         # captions = self.captions[key]
         embeddings = self.embeddings[index, :, :]
-        img_name = '%s/images/%s.jpg' % (data_dir, key)
+        img_name = '%s/jpg_images/%s.jpg' % (data_dir, key)
         imgs = get_imgs(img_name, self.imsize,
                         bbox, self.transform, normalize=self.norm)
 

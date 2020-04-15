@@ -69,8 +69,13 @@ __C.CHAR.VOCABSIZE = 105
 __C.CHARVEC = edict()
 __C.CHARVEC.DIMENSION = 64
 
+__C.POKEMON = edict()
+__C.POKEMON.SIZE = 24
+__C.POKEMON.DIMENSION = 12
+
 __C.CHARLSTM = edict()
 __C.CHARLSTM.DIMENSION = 256
+__C.CHARLSTM.DROPOUT = 0.5
 
 def _merge_a_into_b(a, b):
     """Merge config dictionary a into config dictionary b, clobbering the
