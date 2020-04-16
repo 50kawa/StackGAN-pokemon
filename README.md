@@ -4,7 +4,7 @@ fork元:[StackGAN-v2](https://github.com/hanzhanggit/StackGAN-v2)
 StackGANでポケモンの画像を生成します。現状はうまく画像が生成できていないので適宜修正していきます。
 
 ## 実行方法
-###GAN
+### GAN
 ##### GANの学習
 code/main.pyを実行
 
