@@ -18,6 +18,7 @@ import time
 import cloudpickle
 import pickle
 import sys
+
 sys.path.append('../')
 
 from miscc.config import cfg, cfg_from_file
@@ -154,10 +155,7 @@ if __name__ == "__main__":
         else:
             input_char = Variable(torch.t(torch.LongTensor([char_list])))
             input_poke = Variable(torch.LongTensor([type]).type(torch.FloatTensor))
-        print(input_char.shape)
-        print(input_poke.shape)
         output_char, output_poke = model(input_char, input_poke, 0) # turn off teacher forcing
-        print(output_char.shape)
         output_char = output_char.tolist()
         output_poke = output_poke.tolist()
         print("pokemon name:", end="")
@@ -181,4 +179,5 @@ if __name__ == "__main__":
         print(str(int(output_poke_habcds[3])) + " ", end="")
         print(str(int(output_poke_habcds[4])) + " ", end="")
         print(str(int(output_poke_habcds[5])) + " ", end="")
+        print("")
 
