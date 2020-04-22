@@ -24,7 +24,8 @@ def train(model, data_loader, optimizer, criterion, emb_criterion, clip):
     model.train()
 
     epoch_char_loss = 0
-    epoch_poke_loss = 0
+    epoch_poke_type_loss = 0
+    epoch_poke_habcds_loss = 0
 
     for i, batch in enumerate(data_loader):
         if cfg.CUDA:
@@ -49,9 +50,12 @@ def train(model, data_loader, optimizer, criterion, emb_criterion, clip):
         # output = [(trg len - 1) * batch size, output dim]
 
         loss = criterion(output_char, input_char)
+        loss_poke_type = emb_criterion(output_poke[:,:18], input_poke[:,:18])
+        loss_poke_habcds = emb_criterion(output_poke[:,18:], input_poke[:,18:])
+        all_loss = loss * cfg.TRAIN.LOSS_GRAD.POKEMON_CHAR\
+                   + loss_poke_type * cfg.TRAIN.LOSS_GRAD.POKEMON_TYPE\
+                   + loss_poke_habcds * cfg.TRAIN.LOSS_GRAD.POKEMON_HABCDS
 
-        loss_poke = emb_criterion(output_poke, input_poke)
-        all_loss = loss + loss_poke/100
         all_loss.backward()
 
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
@@ -59,16 +63,18 @@ def train(model, data_loader, optimizer, criterion, emb_criterion, clip):
         optimizer.step()
 
         epoch_char_loss += loss.item()
-        epoch_poke_loss += loss_poke.item()
+        epoch_poke_type_loss += loss_poke_type.item()
+        epoch_poke_habcds_loss += loss_poke_habcds.item()
 
-    return epoch_char_loss / len(data_loader), epoch_poke_loss / len(data_loader)
+    return epoch_char_loss / len(data_loader), epoch_poke_type_loss / len(data_loader), epoch_poke_habcds_loss / len(data_loader)
 
 
 def evaluate(model, data_loader, criterion, emb_criterion):
     model.eval()
 
     epoch_char_loss = 0
-    epoch_poke_loss = 0
+    epoch_poke_type_loss = 0
+    epoch_poke_habcds_loss = 0
 
     with torch.no_grad():
         for i, batch in enumerate(data_loader):
@@ -93,12 +99,14 @@ def evaluate(model, data_loader, criterion, emb_criterion):
             # output = [(trg len - 1) * batch size, output dim]
 
             loss = criterion(output_char, input_char)
-            loss_poke = emb_criterion(output_poke, input_poke)
+            loss_poke_type = emb_criterion(output_poke[:, :18], input_poke[:, :18])
+            loss_poke_habcds = emb_criterion(output_poke[:, 18:], input_poke[:, 18:])
 
             epoch_char_loss += loss.item()
-            epoch_poke_loss += loss_poke.item()
+            epoch_poke_type_loss += loss_poke_type.item()
+            epoch_poke_habcds_loss += loss_poke_habcds.item()
 
-    return epoch_char_loss / len(data_loader), epoch_poke_loss / len(data_loader)
+    return epoch_char_loss / len(data_loader), epoch_poke_type_loss / len(data_loader), epoch_poke_habcds_loss / len(data_loader)
 
 def epoch_time(start_time, end_time):
     elapsed_time = end_time - start_time

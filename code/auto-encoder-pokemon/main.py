@@ -63,7 +63,7 @@ if __name__ == "__main__":
     decoder.apply(weights_init)
     decoder = torch.nn.DataParallel(decoder, device_ids=[int(ix) for ix in cfg.GPU_ID.split(',')])
     model = Seq2Seq(encoder, decoder, device)
-    optimizer = optim.Adam(model.parameters())
+    optimizer = optim.Adam(model.parameters(), lr=cfg.TRAIN.LEARNING_RATE)
     criterion = nn.CrossEntropyLoss()
     emb_criterion = nn.MSELoss()
     clip = 1
@@ -81,16 +81,34 @@ if __name__ == "__main__":
         val_dataset, batch_size=cfg.TRAIN.BATCH_SIZE,
         drop_last=True, shuffle=False, num_workers=int(cfg.WORKERS))
 
+    early_stop = 0
     for epoch_idx in range(cfg.TRAIN.MAX_EPOCH):
-        train_char_loss, train_poke_loss = train(model, train_dataloader, optimizer, criterion, emb_criterion, clip)
-        valid_char_loss, valid_poke_loss = evaluate(model, val_dataloader, criterion, emb_criterion)
-        train_loss = train_char_loss + train_poke_loss
-        valid_loss =  valid_char_loss + valid_poke_loss
+        train_char_loss, train_poke_type_loss, train_poke_habcds_loss = train(model, train_dataloader, optimizer, criterion, emb_criterion, clip)
+        valid_char_loss, valid_poke_type_loss, valid_poke_habcds_loss = evaluate(model, val_dataloader, criterion, emb_criterion)
+        train_loss = train_char_loss + train_poke_type_loss + train_poke_habcds_loss
+        valid_loss =  valid_char_loss * cfg.TRAIN.LOSS_GRAD.POKEMON_CHAR\
+                      + valid_poke_type_loss * cfg.TRAIN.LOSS_GRAD.POKEMON_TYPE\
+                      + valid_poke_habcds_loss * cfg.TRAIN.LOSS_GRAD.POKEMON_HABCDS
+
+        print('epoch {} char_loss {:.3f} type_loss {:.3f}  habcds_loss {:.3f} | char_loss {:.3f} type_loss {:.3f} habcds_loss {:.3f}'
+              .format(epoch_idx, train_char_loss, train_poke_type_loss, train_poke_habcds_loss, valid_char_loss, valid_poke_type_loss , valid_poke_habcds_loss))
+
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
             best_model = model
             best_epoch = epoch_idx
-        print('train_char_loss {:.3f} train_poke_loss {:.3f} valid_char_loss {:.3f} valid_poke_loss {:.3f}'.format(train_char_loss, train_poke_loss, valid_char_loss, valid_poke_loss))
+            early_stop = 0
+        else:
+            early_stop += 1
+            if early_stop >= cfg.TRAIN.EARLY_STOP:
+                print('early_stop at {:.3f}'.format(epoch_idx))
+                break
 
-    with open('%s/netG_%d.pth' % (args.model_dir, best_epoch), 'wb') as f:
+
+    with open('%s/autoencoder_%d.pth.pkl' % (args.model_dir, best_epoch), 'wb') as f:
         cloudpickle.dump(best_model, f)
+
+    torch.save(
+        best_model.state_dict(),
+        '%s/autoencoder_%d.pth' % (args.model_dir, best_epoch))
+

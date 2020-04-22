@@ -71,6 +71,7 @@ if __name__ == "__main__":
         type_dict = data[3]
         type_id_dict = data[4]
     model.eval()
+    cfg.TRAIN.BATCH_SIZE = 1
     while True:
 
         # 名前を入力
