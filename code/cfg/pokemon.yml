@@ -3,6 +3,7 @@ CONFIG_NAME: '3stages'
 DATASET_NAME: 'pokemon'
 EMBEDDING_TYPE: 'cnn-rnn'
 DATA_DIR: '../../pokemon_dataset/pokemon-images-and-types' # path_to_dir_with_pokemondata_and_img_dir
+AUTO_ENCODER_MODEL_DIR: 'auto-encoder-pokemon/autoencoder_best.pth'
 GPU_ID: '0'
 WORKERS: 4
 
@@ -15,7 +16,7 @@ TRAIN:
     FLAG: True
     NET_G: ''  # '../output/birds_3stages/Model/netG_epoch_700.pth'
     NET_D: ''  # '../output/birds_3stages/Model/netD'
-    BATCH_SIZE: 30
+    BATCH_SIZE: 15
     MAX_EPOCH: 600
     SNAPSHOT_INTERVAL: 2000
     DISCRIMINATOR_LR: 0.0002
@@ -30,7 +31,7 @@ TRAIN:
     LEARNING_RATE: 0.001
 
 GAN:
-    EMBEDDING_DIM: 128
+    EMBEDDING_DIM: 256 # TEXT.DIM/2
     DF_DIM: 64
     GF_DIM: 64
     Z_DIM: 100
@@ -39,7 +40,7 @@ GAN:
     POKEMON: True
 
 TEXT:
-    DIMENSION: 280 # CHARLSTM.DIMENTION+24
+    DIMENSION: 512 # CHARLSTM_DIM*2
 
 CHAR:
     VOCABSIZE: 86
@@ -53,4 +54,4 @@ POKEMON:
 
 CHARLSTM:
     DIMENSION: 256
-    DROPOUT: 0.5
+    DROPOUT: 0.0

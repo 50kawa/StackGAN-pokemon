@@ -52,7 +52,7 @@ class GLU(nn.Module):
         nc = x.size(1)
         assert nc % 2 == 0, 'channels dont divide 2!'
         nc = int(nc/2)
-        return x[:, :nc] * F.sigmoid(x[:, nc:])
+        return x[:, :nc] * torch.sigmoid(x[:, nc:])
 
 
 def conv3x3(in_planes, out_planes):
@@ -86,19 +86,23 @@ def Block3x3_relu(in_planes, out_planes):
 class BiLSTM(nn.Module):
     def __init__(self):
         super(BiLSTM, self).__init__()
-        self.vocab_size = cfg.CHAR.VOCABSIZE
-        self.embedding_dim = cfg.CHARVEC.DIMENSION
-        self.hidden_dim = cfg.CHARLSTM.DIMENSION
-        self.word_embeds = nn.Embedding(self.vocab_size, self.embedding_dim)
-        self.lstm = nn.LSTM(self.embedding_dim, self.hidden_dim // 2,
-                            num_layers=1, bidirectional=True)
+
+        self.hid_dim = cfg.CHARLSTM.DIMENSION
+        self.n_layers = 1
+
+        self.word_embeds = nn.Embedding(cfg.CHAR.VOCABSIZE, cfg.CHARVEC.DIMENSION)
+
+        self.pokemon_embed = nn.Linear(cfg.POKEMON.SIZE, cfg.POKEMON.DIMENSION)
+
+        self.rnn = nn.LSTM(cfg.CHARVEC.DIMENSION + cfg.POKEMON.DIMENSION, cfg.CHARLSTM.DIMENSION, 1, dropout=cfg.CHARLSTM.DROPOUT)
+
+        self.dropout = nn.Dropout(cfg.CHARLSTM.DROPOUT)
 
     def forward(self, sentence, embedding):
         embeds = self.word_embeds(Variable(sentence))
-        lstm_out, _ = self.lstm(embeds)
-        print(embedding.shape)
-        return torch.cat((lstm_out[len(sentence)-1], embedding), dim=1)
-
+        concated_emb = torch.cat((embeds, self.pokemon_embed(embedding).repeat(len(sentence), 1, 1)), dim=2)
+        lstm_out, (hn, cn) = self.rnn(concated_emb)
+        return torch.cat((hn, cn), dim=2).squeeze(0)
 
 class ResBlock(nn.Module):
     def __init__(self, channel_num):

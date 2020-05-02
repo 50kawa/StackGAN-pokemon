@@ -56,12 +56,12 @@ def KL_loss(mu, logvar):
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
-        nn.init.orthogonal(m.weight.data, 1.0)
+        nn.init.orthogonal_(m.weight.data, 1.0)
     elif classname.find('BatchNorm') != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
     elif classname.find('Linear') != -1:
-        nn.init.orthogonal(m.weight.data, 1.0)
+        nn.init.orthogonal_(m.weight.data, 1.0)
         if m.bias is not None:
             m.bias.data.fill_(0.0)
 
@@ -932,10 +932,10 @@ class pokemonTrainer(object):
         real_vimgs, wrong_vimgs = [], []
         if cfg.CUDA:
             one_hot_vector =  Variable(torch.stack(name)).cuda()
-            pokemon_embedding = Variable(torch.stack(pokemon_emb).type(torch.cuda.FloatTensor)).cuda()
+            pokemon_embedding = Variable(torch.t(torch.stack(pokemon_emb).type(torch.cuda.FloatTensor))).cuda()
         else:
             one_hot_vector = Variable(torch.stack(name))
-            pokemon_embedding = Variable(torch.stack(pokemon_emb).type(torch.FloatTensor))
+            pokemon_embedding = Variable(torch.t(torch.stack(pokemon_emb).type(torch.FloatTensor)))
         for i in range(self.num_Ds):
             if cfg.CUDA:
                 real_vimgs.append(Variable(imgs[i]).cuda())
@@ -1049,16 +1049,22 @@ class pokemonTrainer(object):
     def train(self):
         self.netG, self.netsD, self.num_Ds,\
             self.inception_model, start_count = load_network(self.gpus)
+        auto_encoder_weight = torch.load(cfg.AUTO_ENCODER_MODEL_DIR)
         self.pre_embed = BiLSTM()
-        self.pre_embed.apply(weights_init)
+        self.pre_embed.word_embeds.weight.data.copy_(auto_encoder_weight['encoder.module.word_embeds.weight'])
+        self.pre_embed.pokemon_embed.weight.data.copy_(auto_encoder_weight['encoder.module.pokemon_embed.weight'])
+        self.pre_embed.pokemon_embed.bias.data.copy_(auto_encoder_weight['encoder.module.pokemon_embed.bias'])
+        self.pre_embed.rnn.weight_ih_l0.data.copy_(auto_encoder_weight['encoder.module.rnn.weight_ih_l0'])
+        self.pre_embed.rnn.weight_hh_l0.data.copy_(auto_encoder_weight['encoder.module.rnn.weight_hh_l0'])
+        self.pre_embed.rnn.bias_ih_l0.data.copy_(auto_encoder_weight['encoder.module.rnn.bias_ih_l0'])
+        self.pre_embed.rnn.bias_hh_l0.data.copy_(auto_encoder_weight['encoder.module.rnn.bias_hh_l0'])
         self.pre_embed = torch.nn.DataParallel(self.pre_embed, device_ids=self.gpus)
-
         avg_param_G = copy_G_params(self.netG)
 
         self.optimizerG, self.optimizersD = \
             define_optimizers(self.netG, self.netsD)
 
-        self.criterion = nn.BCELoss()
+        self.criterion = nn.HingeEmbeddingLoss()
 
         self.real_labels = \
             Variable(torch.FloatTensor(self.batch_size).fill_(1))
