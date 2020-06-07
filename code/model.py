@@ -368,6 +368,10 @@ class D_NET64(nn.Module):
             self.uncond_logits = nn.Sequential(
                 nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
                 nn.Sigmoid())
+            if cfg.GAN.POKEMON_EMB_LOSS:
+                self.emb_logits =  nn.Sequential(
+                nn.Conv2d(ndf * 8, cfg.POKEMON.SIZE, kernel_size=4, stride=4),
+                nn.Sigmoid())
 
     def forward(self, x_var, c_code=None):
         x_code = self.img_code_s16(x_var)
@@ -385,6 +389,9 @@ class D_NET64(nn.Module):
         output = self.logits(h_c_code)
         if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             out_uncond = self.uncond_logits(x_code)
+            if cfg.GAN.POKEMON_EMB_LOSS:
+                out_emb = self.emb_logits(x_code)
+                return [output.view(-1), out_uncond.view(-1), out_emb.view(-1)]
             return [output.view(-1), out_uncond.view(-1)]
         else:
             return [output.view(-1)]
@@ -414,6 +421,10 @@ class D_NET128(nn.Module):
             self.uncond_logits = nn.Sequential(
             nn.Conv2d(ndf * 8, 1, kernel_size=4, stride=4),
             nn.Sigmoid())
+            if cfg.GAN.POKEMON_EMB_LOSS:
+                self.emb_logits =  nn.Sequential(
+                nn.Conv2d(ndf * 8, cfg.POKEMON.SIZE, kernel_size=4, stride=4),
+                nn.Sigmoid())
 
     def forward(self, x_var, c_code=None):
         x_code = self.img_code_s16(x_var)
@@ -433,6 +444,9 @@ class D_NET128(nn.Module):
         output = self.logits(h_c_code)
         if cfg.GAN.B_CONDITION or cfg.GAN.POKEMON:
             out_uncond = self.uncond_logits(x_code)
+            if cfg.GAN.POKEMON_EMB_LOSS:
+                out_emb = self.emb_logits(x_code)
+                return [output.view(-1), out_uncond.view(-1), out_emb.view(-1)]
             return [output.view(-1), out_uncond.view(-1)]
         else:
             return [output.view(-1)]

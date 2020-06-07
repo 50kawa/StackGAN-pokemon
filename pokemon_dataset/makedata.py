@@ -3,17 +3,6 @@ import codecs
 import sys
 import pickle
 
-class pokemon():
-    def __init__(self, name, type, h, a, b, c, d, s):
-        self.name = name
-        self.type = type
-        self.h = h
-        self.a = a
-        self.b = b
-        self.c = c
-        self.d = d
-        self.s = s
-
 def load_jp_en_type_dict(filename):
     dict = {}
     char_dict = {" ":0}
@@ -65,8 +54,10 @@ def load_pokemon_dict(jp_en_type_dict, filename):
                 type[21] = int(l_list[7])
                 type[22] = int(l_list[8])
                 type[23] = int(l_list[9])
-                if en_name not in dict:
-                    dict[en_name] = (jp_name, type)
+                for i in range(28): # num of data augmentation
+                    img_name = en_name + "_" + str(i)
+                    if img_name not in dict:
+                        dict[img_name] = (jp_name, type)
     return dict, type_dict, type_id_dict
 
 

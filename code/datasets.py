@@ -432,7 +432,7 @@ class PokemonDataset(data.Dataset):
             bbox = None
             data_dir = self.data_dir
         # captions = self.captions[key]
-        img_name = '%s/jpg_images/%s.jpg' % (data_dir, key)
+        img_name = '%s/trans_images/%s.jpg' % (data_dir, key)
         imgs = get_imgs(img_name, self.imsize,
                         bbox, self.transform, normalize=self.norm)
 
@@ -444,12 +444,12 @@ class PokemonDataset(data.Dataset):
             wrong_bbox = self.bbox[wrong_key]
         else:
             wrong_bbox = None
-        wrong_img_name = '%s/jpg_images/%s.jpg' % \
+        wrong_img_name = '%s/trans_images/%s.jpg' % \
             (data_dir, wrong_key)
         wrong_imgs = get_imgs(wrong_img_name, self.imsize,
                               wrong_bbox, self.transform, normalize=self.norm)
 
-        return imgs, wrong_imgs, self.pokemon_dict[key][0], self.pokemon_dict[key][1], key  # captions
+        return imgs, wrong_imgs, self.pokemon_dict[key][0], self.pokemon_dict[key][1], self.pokemon_dict[wrong_key][1], key  # captions
 
     def prepair_test_pairs(self, index):
         key = self.filenames[index]
@@ -461,7 +461,7 @@ class PokemonDataset(data.Dataset):
             data_dir = self.data_dir
         # captions = self.captions[key]
         embeddings = self.embeddings[index, :, :]
-        img_name = '%s/jpg_images/%s.jpg' % (data_dir, key)
+        img_name = '%s/trans_images/%s.jpg' % (data_dir, key)
         imgs = get_imgs(img_name, self.imsize,
                         bbox, self.transform, normalize=self.norm)
 

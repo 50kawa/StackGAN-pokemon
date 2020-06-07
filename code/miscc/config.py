@@ -66,6 +66,7 @@ __C.GAN.NETWORK_TYPE = 'default'
 __C.GAN.R_NUM = 2
 __C.GAN.B_CONDITION = False
 __C.GAN.POKEMON = False
+__C.GAN.POKEMON_EMB_LOSS = False
 
 __C.TEXT = edict()
 __C.TEXT.DIMENSION = 1024
