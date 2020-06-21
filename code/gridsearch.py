@@ -70,6 +70,7 @@ def parse_args():
     parser.add_argument('--d_learning_rate', dest='d_learning_rate', type=tp, default='0.0002')
     parser.add_argument('--g_learning_rate', dest='g_learning_rate', type=tp, default='0.0002')
     parser.add_argument('--uncond_loss', dest='uncond_loss', type=tp, default='1.0')
+    parser.add_argument('--emb_dim', dest='emb_dim', type=itp, default='64')
     parser.add_argument('--df_dim', dest='df_dim', type=itp, default='64')
     parser.add_argument('--gf_dim', dest='gf_dim', type=itp, default='64')
     parser.add_argument('--z_dim', dest='z_dim', type=itp, default='100')
@@ -157,26 +158,28 @@ if __name__ == "__main__":
             from trainer import pokemonTrainer as trainer
 
     cfg.TRAIN.MAX_EPOCH = 1
-    grid_search_result='d_lr,g_lr,unc_l,df_dim,gf_dim,z_dim,r_num,errD,errG,KL_loss\n'
+    grid_search_result='d_lr,g_lr,unc_l,emb_dim,df_dim,gf_dim,z_dim,r_num,errD,errG,KL_loss\n'
     for d_learning_rate in args.d_learning_rate:
         cfg.TRAIN.DISCRIMINATOR_LR = d_learning_rate
         for g_learning_rate in args.g_learning_rate:
             cfg.TRAIN.GENERATOR_LR = g_learning_rate
             for uncond_loss in args.uncond_loss:
                 cfg.TRAIN.COEFF.UNCOND_LOSS = uncond_loss
-                for df_dim in args.df_dim:
-                    cfg.GAN.DF_DIM = df_dim
-                    for gf_dim in args.gf_dim:
-                        cfg.GAN.GF_DIM = gf_dim
-                        for z_dim in args.z_dim:
-                            cfg.GAN.Z_DIM = z_dim
-                            for r_num in args.r_num:
-                                cfg.GAN.R_NUM = r_num
-                                algo = trainer(output_dir, dataloader, imsize)
-                                errD, errG, kl_loss = algo.train_once()
-                                grid_search_result += '%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n' % (
-                                d_learning_rate, g_learning_rate, uncond_loss, df_dim, gf_dim,
-                                z_dim, r_num, errD, errG, kl_loss)
+                for g_emb_dim in args.emb_dim:
+                    cfg.GAN.EMBEDDING_DIM = g_emb_dim
+                    for df_dim in args.df_dim:
+                        cfg.GAN.DF_DIM = df_dim
+                        for gf_dim in args.gf_dim:
+                            cfg.GAN.GF_DIM = gf_dim
+                            for z_dim in args.z_dim:
+                                cfg.GAN.Z_DIM = z_dim
+                                for r_num in args.r_num:
+                                    cfg.GAN.R_NUM = r_num
+                                    algo = trainer(output_dir, dataloader, imsize)
+                                    errD, errG, kl_loss = algo.train_once()
+                                    grid_search_result += '%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n' % (
+                                    d_learning_rate, g_learning_rate, uncond_loss, g_emb_dim, df_dim, gf_dim,
+                                    z_dim, r_num, errD, errG, kl_loss)
 
     with open("result.csv","w") as f:
         f.write(grid_search_result)
