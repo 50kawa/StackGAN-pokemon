@@ -1077,12 +1077,13 @@ class pokemonTrainer(object):
         self.optimizerG, self.optimizersD = \
             define_optimizers(self.netG, self.netsD)
 
-        self.criterion = nn.HingeEmbeddingLoss()
+        self.criterion = nn.BCELoss()
+        # self.criterion = nn.HingeEmbeddingLoss()
 
-        self.real_labels = \
-            Variable(torch.FloatTensor(self.batch_size).fill_(1))
-        self.fake_labels = \
-            Variable(torch.FloatTensor(self.batch_size).fill_(0))
+        # self.real_labels = \
+        #     Variable(torch.FloatTensor(self.batch_size).fill_(1))
+        # self.fake_labels = \
+        #     Variable(torch.FloatTensor(self.batch_size).fill_(0))
 
         self.gradient_one = torch.FloatTensor([1.0])
         self.gradient_half = torch.FloatTensor([0.5])
@@ -1094,8 +1095,6 @@ class pokemonTrainer(object):
 
         if cfg.CUDA:
             self.criterion.cuda()
-            self.real_labels = self.real_labels.cuda()
-            self.fake_labels = self.fake_labels.cuda()
             self.gradient_one = self.gradient_one.cuda()
             self.gradient_half = self.gradient_half.cuda()
             noise, fixed_noise = noise.cuda(), fixed_noise.cuda()
@@ -1107,6 +1106,19 @@ class pokemonTrainer(object):
             start_t = time.time()
 
             for step, data in enumerate(self.data_loader, 0):
+                if np.random.rand() > 0.05:
+                    self.real_labels = \
+                        Variable(torch.FloatTensor([0.7 + i / 2 for i in np.random.rand(self.batch_size)]))
+                    self.fake_labels = \
+                        Variable(torch.FloatTensor([i / 3.34 for i in np.random.rand(self.batch_size)]))
+                else:
+                    self.real_labels = \
+                        Variable(torch.FloatTensor([i / 3.34 for i in np.random.rand(self.batch_size)]))
+                    self.fake_labels = \
+                        Variable(torch.FloatTensor([0.7 + i / 2 for i in np.random.rand(self.batch_size)]))
+                if cfg.CUDA:
+                    self.real_labels = self.real_labels.cuda()
+                    self.fake_labels = self.fake_labels.cuda()
 
                 #######################################################
                 # (0) Prepare training data
