@@ -11,6 +11,14 @@ code/main.pyを実行
 ```python main.py --cfg cfg/pokemon.yml --gpu 0```
 
 設定はyamlファイルを適宜変更する
+##### 学習したモデルで画像を生成
+code/interpreter.pyを実行
+
+```
+ python interpreter.py --cfg cfg/pokemon.yml --gpu 0  
+```
+読み取るモデルなどはコード中に記述しているので適宜変更する。
+実行したらキーボード入力を求められるので、ポケモンの名前やタイプ、種族値を指示通りに入れていく
 ### auto-encoder
 ##### auto-encoderの学習
 code/auto-encoder-pokemon/main.pyを実行
@@ -29,7 +37,6 @@ code/auto-encoder-pokemon/interpreter.pyを実行
                        --gpu 0 
                        --char_dict path_to_pokemondata.pkl  
 ```
-現状cfg/pokemon.ymlでTRAIN.BATCH_SIZEを1にしないと動かないので変更してから動かす。
 
 実行したらキーボード入力を求められるので、ポケモンの名前やタイプ、種族値を指示通りに入れていく
 
