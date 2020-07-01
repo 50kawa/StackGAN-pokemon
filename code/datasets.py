@@ -367,6 +367,8 @@ class PokemonDataset(data.Dataset):
             self.bbox = None
         split_dir = os.path.join(data_dir, split)
         self.pokemon_dict = self.pokemon_dataset[0]
+        self.char_dict = self.pokemon_dataset[1]
+        self.type_dict = self.pokemon_dataset[3]
         self.filenames = list(self.pokemon_dict.keys())
         self.class_id = self.load_class_id(split_dir, len(self.filenames))
 

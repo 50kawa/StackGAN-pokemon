@@ -1447,3 +1447,63 @@ class pokemonTrainer(object):
                     #                       save_dir, split_dir, 128)
                     self.save_superimages(fake_img_list, filenames,
                                           save_dir, split_dir, 256)
+
+    def generate_one_img(self, filenames, name, pokemon_emb):
+        split_dir = 'interpreter'
+        if cfg.TRAIN.NET_G == '':
+            print('Error: the path for morels is not found!')
+        else:
+            # Build and load the generator
+            netG = G_NET()
+            netG.apply(weights_init)
+            netG = torch.nn.DataParallel(netG, device_ids=self.gpus)
+            auto_encoder_weight = torch.load(cfg.AUTO_ENCODER_MODEL_DIR)
+            pre_embed = BiLSTM()
+            pre_embed.word_embeds.weight.data.copy_(auto_encoder_weight['encoder.module.word_embeds.weight'])
+            pre_embed.pokemon_embed.weight.data.copy_(auto_encoder_weight['encoder.module.pokemon_embed.weight'])
+            pre_embed.pokemon_embed.bias.data.copy_(auto_encoder_weight['encoder.module.pokemon_embed.bias'])
+            pre_embed.rnn.weight_ih_l0.data.copy_(auto_encoder_weight['encoder.module.rnn.weight_ih_l0'])
+            pre_embed.rnn.weight_hh_l0.data.copy_(auto_encoder_weight['encoder.module.rnn.weight_hh_l0'])
+            pre_embed.rnn.bias_ih_l0.data.copy_(auto_encoder_weight['encoder.module.rnn.bias_ih_l0'])
+            pre_embed.rnn.bias_hh_l0.data.copy_(auto_encoder_weight['encoder.module.rnn.bias_hh_l0'])
+            pre_embed = torch.nn.DataParallel(pre_embed, device_ids=self.gpus)
+            # state_dict = torch.load(cfg.TRAIN.NET_G)
+            state_dict = \
+                torch.load(cfg.TRAIN.NET_G,
+                           map_location=lambda storage, loc: storage)
+            netG.load_state_dict(state_dict)
+            print('Load ', cfg.TRAIN.NET_G)
+
+            # the path to save generated images
+            s_tmp = cfg.TRAIN.NET_G
+            istart = s_tmp.rfind('_') + 1
+            iend = s_tmp.rfind('.')
+            iteration = int(s_tmp[istart:iend])
+            s_tmp = s_tmp[:s_tmp.rfind('/')]
+            save_dir = '%s/iteration%d' % (s_tmp, iteration)
+
+            nz = cfg.GAN.Z_DIM
+            noise = Variable(torch.FloatTensor(self.batch_size, nz))
+            if cfg.CUDA:
+                netG.cuda()
+                noise = noise.cuda()
+
+            # switch to evaluate mode
+            netG.eval()
+            if cfg.CUDA:
+                one_hot_vector = Variable(torch.t(torch.LongTensor([name]))).cuda()
+                pokemon_embedding = Variable(torch.LongTensor([pokemon_emb]).type(torch.FloatTensor)).cuda()
+            else:
+                one_hot_vector = Variable(torch.t(torch.LongTensor([name])))
+                pokemon_embedding = Variable(torch.LongTensor([pokemon_emb]).type(torch.FloatTensor))
+
+            # print(t_embeddings[:, 0, :], t_embeddings.size(1))
+
+            noise.resize_(1, nz)
+            noise.normal_(0, 1)
+
+            fake_img_list = []
+            t_embeddings = pre_embed(one_hot_vector, pokemon_embedding)
+            fake_imgs, _, _ = netG(noise, t_embeddings)
+            self.save_singleimages(fake_imgs[-1], filenames,
+                                       save_dir, split_dir, 0, 256)
